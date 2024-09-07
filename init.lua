@@ -106,6 +106,18 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+vim.keymap.set('v', '*', "<C-u>call VisualSelection('', '')<CR>/<C-R>=@/<CR><CR>")
+
+vim.keymap.set('n', '<M-j>', 'mz:m+<cr>`z')
+vim.keymap.set('n', '<M-k>', 'mz:m-2<cr>`z')
+vim.keymap.set('v', '<M-j>', ":m'>+<cr>`<my`>mzgv`yo`z")
+vim.keymap.set('v', '<M-k>', ":m'<-2<cr>`>my`<mzgv`yo`z")
+
+vim.keymap.set('n', '<D-j>', '<M-j>')
+vim.keymap.set('n', '<D-k>', '<M-k>')
+vim.keymap.set('v', '<D-j>', '<M-j>')
+vim.keymap.set('v', '<D-k>', '<M-k>')
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -294,6 +306,41 @@ require('lazy').setup({
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
+
+      local select_one_or_multi = function(prompt_bufnr)
+        local picker = require('telescope.actions.state').get_current_picker(prompt_bufnr)
+        local multi = picker:get_multi_selection()
+        if not vim.tbl_isempty(multi) then
+          require('telescope.actions').close(prompt_bufnr)
+          for _, j in pairs(multi) do
+            if j.path ~= nil then
+              if j.lnum ~= nil then
+                vim.cmd(string.format('%s +%s %s', 'edit', j.lnum, j.path))
+              else
+                vim.cmd(string.format('%s %s', 'edit', j.path))
+              end
+            end
+          end
+        else
+          require('telescope.actions').select_default(prompt_bufnr)
+        end
+      end
+
+      -- Opens marked items in a quickfix list.
+      -- if there are no marked items, it opens all items in a quickfix list.
+      local smart_send_to_qflist = function(prompt_bufnr)
+        local actions = require 'telescope.actions'
+        local picker = require('telescope.actions.state').get_current_picker(prompt_bufnr)
+        local multi = picker:get_multi_selection()
+
+        if not vim.tbl_isempty(multi) then
+          actions.send_selected_to_qflist(prompt_bufnr)
+        else
+          actions.send_to_qflist(prompt_bufnr)
+        end
+        actions.open_qflist(prompt_bufnr)
+      end
+
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -307,6 +354,14 @@ require('lazy').setup({
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
+          },
+        },
+        defaults = {
+          mappings = {
+            i = {
+              ['<CR>'] = select_one_or_multi,
+              ['<C-a>'] = smart_send_to_qflist,
+            },
           },
         },
       }
@@ -331,7 +386,7 @@ require('lazy').setup({
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.
-        builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+        builtin.live_grep(require('telescope.themes').get_dropdown {
           winblend = 10,
           previewer = false,
         })
@@ -619,7 +674,8 @@ require('lazy').setup({
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -695,9 +751,9 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
@@ -745,13 +801,13 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
+    'tomasr/molokai',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'molokai'
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
@@ -845,7 +901,7 @@ require('lazy').setup({
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -866,9 +922,15 @@ require('lazy').setup({
       lazy = '💤 ',
     },
   },
+
+  {
+    'pmizio/typescript-tools.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+    opts = {},
+  },
 })
 
+vim.keymap.set('n', ']g', vim.diagnostic.goto_next)
+vim.keymap.set('n', '[g', vim.diagnostic.goto_prev)
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
-
-vim.keymap.set('n', '<C-c>', '*y')
