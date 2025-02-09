@@ -415,6 +415,13 @@ require('lazy').setup({
             },
           },
         },
+
+        ts_ls = {
+          init_options = {
+            hostInfo = 'neovim',
+            maxTsServerMemory = 8192,
+          },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -513,6 +520,8 @@ require('lazy').setup({
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd' },
         typescript = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
+        proto = { 'buf' },
       },
     },
   },
