@@ -8,27 +8,37 @@ return {
   config = function()
     require('codecompanion').setup {
       strategies = {
-        -- Change the default chat adapter
         chat = {
           adapter = 'anthropic',
+          slash_commands = {
+            ['buffer'] = {
+              opts = {
+                provider = 'fzf_lua',
+              },
+            },
+            ['file'] = {
+              opts = {
+                provider = 'fzf_lua',
+              },
+            },
+          },
         },
         inline = {
           adapter = 'anthropic',
         },
       },
       opts = {
-        -- Set debug logging
         log_level = 'DEBUG',
       },
       display = {
         action_palette = {
           width = 95,
           height = 10,
-          prompt = 'Prompt ', -- Prompt used for interactive LLM calls
-          provider = 'telescope', -- default|telescope|mini_pick
+          prompt = 'Prompt ',
+          provider = 'telescope',
           opts = {
-            show_default_actions = true, -- Show the default actions in the action palette?
-            show_default_prompt_library = true, -- Show the default prompt library in the action palette?
+            show_default_actions = true,
+            show_default_prompt_library = true,
           },
         },
       },
